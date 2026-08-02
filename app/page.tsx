@@ -20,7 +20,8 @@ import {
 
 export default function TeacherOS(): React.ReactNode {
   // Screen States: 'ai-home' | 'mission-control' | 'teaching-mode'
-  const [screenState, setScreenState] = useState<'ai-home' | 'mission-control' | 'teaching-mode'>('ai-home');
+  // Default diubah ke 'mission-control' agar dari landing page Cloudflare langsung masuk ke Dashboard
+  const [screenState, setScreenState] = useState<'ai-home' | 'mission-control' | 'teaching-mode'>('mission-control');
   const [activeTab, setActiveTab] = useState<'today' | 'teaching' | 'students' | 'ai'>('today');
   const [stepIndex, setStepIndex] = useState(0);
 
