@@ -1,0 +1,6 @@
+export const FEATURE_FLAGS = {
+  ENABLE_OFFLINE_ENGINE: true,
+  ENABLE_AI_ASSISTANT: true,
+  ENABLE_MARKETPLACE: false,
+  ENABLE_ONE_CLICK_TEACHING: true,
+} as const;
