@@ -1,6 +1,49 @@
 import React, { useState } from 'react';
 import { Episode, Scene } from '@/types/content';
 
+// Data Episode Default jika parent component tidak mengirim props currentEpisode
+const DEFAULT_EPISODE: Episode = {
+  id: 'ep-001',
+  episodeNumber: 'EPISODE 01',
+  title: 'Petualangan Kebersihan Diri & Lingkungan',
+  estimatedDurationMinutes: 35,
+  universe: {
+    id: 'uni-dunia-alam',
+    name: 'Dunia Alam',
+    mission: 'Menjaga kebersihan & kesehatan lingkungan kelas',
+  },
+  story: {
+    id: 'story-001',
+    title: 'Kebersihan Diri & Lingkungan',
+  },
+  scenes: [
+    {
+      id: 'scene-1',
+      sceneNumber: 1,
+      title: 'Mengenal Kebersihan Diri & Lingkungan',
+      type: 'opening',
+      videoUrl: 'https://drive.google.com/file/d/1nwskcx-QftlMCueXUIo7YjLcMMhwI1H3/preview',
+      moments: [],
+    },
+    {
+      id: 'scene-2',
+      sceneNumber: 2,
+      title: 'Mencuci Tangan & Membuang Sampah',
+      type: 'animation',
+      videoUrl: 'https://drive.google.com/file/d/1nwskcx-QftlMCueXUIo7YjLcMMhwI1H3/preview',
+      moments: [],
+    },
+    {
+      id: 'scene-3',
+      sceneNumber: 3,
+      title: 'Refleksi Kebersihan Kelas',
+      type: 'closing',
+      videoUrl: 'https://drive.google.com/file/d/1nwskcx-QftlMCueXUIo7YjLcMMhwI1H3/preview',
+      moments: [],
+    },
+  ],
+};
+
 interface ClassroomModeProps {
   currentEpisode?: Episode;
   currentScene?: Scene;
@@ -10,51 +53,53 @@ interface ClassroomModeProps {
 }
 
 export default function ClassroomMode({
-  currentEpisode,
-  currentScene: initialScene,
+  currentEpisode: propEpisode,
+  currentScene: propScene,
   onClose,
   onNextScene: externalNext,
   onPrevScene: externalPrev,
 }: ClassroomModeProps) {
+  // Gunakan propEpisode dari luar jika ada, jika tidak pakai DEFAULT_EPISODE
+  const episode = propEpisode || DEFAULT_EPISODE;
+
   // State untuk melacak scene aktif di dalam komponen
   const [activeSceneIndex, setActiveSceneIndex] = useState(0);
 
   // Ambil daftar scenes dari episode
-  const scenes = currentEpisode?.scenes || [];
-  
-  // Tentukan scene aktif (pilih dari array scenes berdasarkan index, atau fallback ke initialScene)
-  const activeScene = scenes[activeSceneIndex] || initialScene || scenes[0];
+  const scenes = episode?.scenes || [];
 
-  // Helper fungsi untuk tombol Selanjutnya
+  // Tentukan scene yang sedang aktif
+  const activeScene = scenes[activeSceneIndex] || propScene || scenes[0];
+
+  // Handle tombol selanjutnya
   const handleNext = () => {
-    if (externalNext) {
-      externalNext();
-    } else if (activeSceneIndex < scenes.length - 1) {
+    if (externalNext) externalNext();
+    if (activeSceneIndex < scenes.length - 1) {
       setActiveSceneIndex((prev) => prev + 1);
     }
   };
 
-  // Helper fungsi untuk tombol Sebelumnya
+  // Handle tombol sebelumnya
   const handlePrev = () => {
-    if (externalPrev) {
-      externalPrev();
-    } else if (activeSceneIndex > 0) {
+    if (externalPrev) externalPrev();
+    if (activeSceneIndex > 0) {
       setActiveSceneIndex((prev) => prev - 1);
     }
   };
 
-  // 1. Ekstrak URL Video dari moments.assets (jika ada)
+  // Ambil URL Video dari moments jika ada
   const videoFromMoments = activeScene?.moments
     ?.flatMap((m) => m.assets || [])
     ?.find((a) => a.type === 'video')?.url;
 
-  // 2. Ambil URL video utama (cek scene, moments, atau episode)
+  // Sumber URL video utama
   const rawVideoUrl =
     (activeScene as any)?.videoUrl ||
     videoFromMoments ||
-    (currentEpisode as any)?.videoUrl;
+    (episode as any)?.videoUrl ||
+    'https://drive.google.com/file/d/1nwskcx-QftlMCueXUIo7YjLcMMhwI1H3/preview';
 
-  // 3. Format URL agar bisa di-embed oleh Google Drive / iframe
+  // Format URL agar siap diputar di iframe
   const activeVideoUrl = rawVideoUrl
     ? rawVideoUrl
         .replace('/view?usp=drive_link', '/preview')
@@ -67,11 +112,11 @@ export default function ClassroomMode({
       <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
         <div>
           <h1 className="text-xl font-bold text-amber-400">
-            {currentEpisode?.title || 'Mode Kelas Interactive'}
+            {episode?.title || 'Petualangan Kebersihan Diri & Lingkungan'}
           </h1>
           <p className="text-xs text-slate-400">
             {activeScene?.title
-              ? `Scene ${activeSceneIndex + 1} dari ${scenes.length || 1}: ${activeScene.title}`
+              ? `Scene ${activeSceneIndex + 1} dari ${scenes.length}: ${activeScene.title}`
               : 'Ruang Belajar BULAENG'}
           </p>
         </div>
@@ -96,16 +141,13 @@ export default function ClassroomMode({
             title="Video Animasi 3D BULAENG"
           />
         ) : (
-          /* TAMPILAN JIKA TIDAK ADA VIDEO */
+          /* TAMPILAN FALLBACK JIKA SAMA SEKALI TIDAK ADA VIDEO */
           <div className="text-center p-8 space-y-3">
             <div className="w-12 h-12 bg-amber-400/10 border border-amber-400/20 rounded-2xl flex items-center justify-center text-2xl mx-auto">
               👀
             </div>
             <p className="text-sm font-semibold text-slate-300">
               Fokuskan pandangan mata ke murid-murid...
-            </p>
-            <p className="text-xs text-slate-500">
-              (Gunakan panduan instruksi di sebelah kanan untuk memandu sesi)
             </p>
           </div>
         )}
@@ -121,8 +163,8 @@ export default function ClassroomMode({
           ← Scene Sebelumnya
         </button>
 
-        <span className="text-xs text-slate-500 font-medium">
-          {scenes.length > 0 ? `${activeSceneIndex + 1} / ${scenes.length}` : ''}
+        <span className="text-xs text-slate-400 font-semibold">
+          Scene {activeSceneIndex + 1} / {scenes.length || 1}
         </span>
 
         <button
