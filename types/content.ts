@@ -23,6 +23,7 @@ export interface Scene {
   sceneNumber: number;
   title: string;
   type: SceneType;
+  videoUrl?: string; // ← Tambahkan ini
   moments: Moment[];
 }
 
@@ -30,6 +31,7 @@ export interface Episode {
   id: string;
   episodeNumber: string;
   title: string;
+  videoUrl?: string; // ← Tambahkan ini
   estimatedDurationMinutes: number;
   universe: {
     id: string;
