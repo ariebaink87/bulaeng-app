@@ -6,9 +6,22 @@ export interface VideoModuleItem {
   thumbnail: string;
   description: string;
   targetObjective: string;
+  url?: string;
+  embedUrl?: string;
 }
 
 export const VIDEO_STORE_DATA: VideoModuleItem[] = [
+  {
+    id: 'vid-005',
+    title: 'Petualangan Pahlawan Cilik Kebersihan (Animasi 3D)',
+    category: 'Karakter & Pembiasaan',
+    duration: '03:45',
+    thumbnail: '🧼',
+    description: 'Animasi 3D interaktif yang mengajarkan pentingnya cuci tangan memakai sabun, menjaga kebersihan diri, dan membuang sampah pada tempatnya.',
+    targetObjective: 'Mengenal kebersihan diri & lingkungan',
+    url: 'https://drive.google.com/file/d/1nwskcx-QftlMCueXUIo7YjLcMMhwI1H3/view?usp=drive_link',
+    embedUrl: 'https://drive.google.com/file/d/1nwskcx-QftlMCueXUIo7YjLcMMhwI1H3/preview'
+  },
   {
     id: 'vid-001',
     title: 'Petualangan Daun Ajaib (Animasi 3D)',
