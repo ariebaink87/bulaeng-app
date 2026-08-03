@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Episode, Scene } from '@/types/content';
+import { useSessionStore } from '@/stores/useSessionStore';
 
-// Data Episode Default jika parent component tidak mengirim props currentEpisode
 const DEFAULT_EPISODE: Episode = {
   id: 'ep-001',
   episodeNumber: 'EPISODE 01',
@@ -59,19 +59,21 @@ export default function ClassroomMode({
   onNextScene: externalNext,
   onPrevScene: externalPrev,
 }: ClassroomModeProps) {
-  // Gunakan propEpisode dari luar jika ada, jika tidak pakai DEFAULT_EPISODE
+  const { endSession } = useSessionStore();
   const episode = propEpisode || DEFAULT_EPISODE;
-
-  // State untuk melacak scene aktif di dalam komponen
   const [activeSceneIndex, setActiveSceneIndex] = useState(0);
-
-  // Ambil daftar scenes dari episode
   const scenes = episode?.scenes || [];
-
-  // Tentukan scene yang sedang aktif
   const activeScene = scenes[activeSceneIndex] || propScene || scenes[0];
 
-  // Handle tombol selanjutnya
+  // Handler kembali ke Dashboard AI
+  const handleBackToAiDashboard = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      endSession();
+    }
+  };
+
   const handleNext = () => {
     if (externalNext) externalNext();
     if (activeSceneIndex < scenes.length - 1) {
@@ -79,7 +81,6 @@ export default function ClassroomMode({
     }
   };
 
-  // Handle tombol sebelumnya
   const handlePrev = () => {
     if (externalPrev) externalPrev();
     if (activeSceneIndex > 0) {
@@ -87,19 +88,16 @@ export default function ClassroomMode({
     }
   };
 
-  // Ambil URL Video dari moments jika ada
   const videoFromMoments = activeScene?.moments
     ?.flatMap((m) => m.assets || [])
     ?.find((a) => a.type === 'video')?.url;
 
-  // Sumber URL video utama
   const rawVideoUrl =
     (activeScene as any)?.videoUrl ||
     videoFromMoments ||
     (episode as any)?.videoUrl ||
     'https://drive.google.com/file/d/1nwskcx-QftlMCueXUIo7YjLcMMhwI1H3/preview';
 
-  // Format URL agar siap diputar di iframe
   const activeVideoUrl = rawVideoUrl
     ? rawVideoUrl
         .replace('/view?usp=drive_link', '/preview')
@@ -107,7 +105,7 @@ export default function ClassroomMode({
     : null;
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-white p-6">
+    <div className="flex flex-col h-screen bg-slate-950 text-white p-6 font-sans">
       {/* HEADER / NAVIGATION BAR */}
       <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
         <div>
@@ -116,18 +114,29 @@ export default function ClassroomMode({
           </h1>
           <p className="text-xs text-slate-400">
             {activeScene?.title
-              ? `Scene ${activeSceneIndex + 1} dari ${scenes.length}: ${activeScene.title}`
+              ? `Adegan ${activeSceneIndex + 1} dari ${scenes.length}: ${activeScene.title}`
               : 'Ruang Belajar BULAENG'}
           </p>
         </div>
-        {onClose && (
+
+        {/* TOMBOL NAVIGASI KEMBALI */}
+        <div className="flex items-center gap-2">
+          {/* 1. KEMBALI KE AI DASHBOARD */}
           <button
-            onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition"
+            onClick={handleBackToAiDashboard}
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs font-semibold cursor-pointer transition flex items-center gap-1.5 border border-slate-800"
           >
-            Selesai Mengajar ✕
+            ← Dashboard AI
           </button>
-        )}
+
+          {/* 2. KEMBALI KE LANDING PAGE CLOUDFLARE */}
+          <a
+            href="https://bulaeng-landing.bulaeng.workers.dev/"
+            className="px-4 py-2 bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 rounded-xl text-xs font-semibold cursor-pointer transition flex items-center gap-1.5 border border-amber-400/20"
+          >
+            🏠 Beranda
+          </a>
+        </div>
       </div>
 
       {/* PANGGUNG UTAMA / STAGE PLAYER */}
@@ -141,7 +150,6 @@ export default function ClassroomMode({
             title="Video Animasi 3D BULAENG"
           />
         ) : (
-          /* TAMPILAN FALLBACK JIKA SAMA SEKALI TIDAK ADA VIDEO */
           <div className="text-center p-8 space-y-3">
             <div className="w-12 h-12 bg-amber-400/10 border border-amber-400/20 rounded-2xl flex items-center justify-center text-2xl mx-auto">
               👀
@@ -158,21 +166,21 @@ export default function ClassroomMode({
         <button
           onClick={handlePrev}
           disabled={activeSceneIndex === 0}
-          className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl text-xs font-semibold cursor-pointer transition"
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl text-xs font-semibold cursor-pointer transition"
         >
-          ← Scene Sebelumnya
+          ← Adegan Sebelumnya
         </button>
 
         <span className="text-xs text-slate-400 font-semibold">
-          Scene {activeSceneIndex + 1} / {scenes.length || 1}
+          Adegan {activeSceneIndex + 1} / {scenes.length || 1}
         </span>
 
         <button
           onClick={handleNext}
           disabled={scenes.length > 0 && activeSceneIndex === scenes.length - 1}
-          className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-xs cursor-pointer transition"
+          className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 disabled:opacity-30 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-xs cursor-pointer transition shadow-lg shadow-amber-400/10"
         >
-          Scene Selanjutnya →
+          Adegan Selanjutnya →
         </button>
       </div>
     </div>
