@@ -35,13 +35,8 @@ export default function Home(): React.ReactNode {
   }, []);
 
   const handleGoHome = () => {
-    // 1. Reset racikan AI agar kembali ke tampilan Welcome Screen awal
-    setDailyAiPackage(null);
-
-    // 2. Jika ada URL landing page eksternal (Workers/Pages), arahkan ke sana
-    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-      window.location.href = '/';
-    }
+    // Navigasi langsung keluar dari Vercel menuju Landing Page Cloudflare Workers
+    window.location.href = 'https://bulaeng-landing.bulaeng.workers.dev/';
   };
 
   if (!isBooted) {
