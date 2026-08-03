@@ -1,0 +1,33 @@
+{
+  "id": "ep-001",
+  "episodeNumber": "EPISODE 01",
+  "title": "Petualangan Daun dan Fotosintesis",
+  "estimatedDurationMinutes": 35,
+  "universe": {
+    "id": "uni-dunia-alam",
+    "name": "Dunia Alam"
+  },
+  "scenes": [
+    {
+      "id": "scene-1",
+      "title": "Mengenal Bentuk Daun",
+      "cueCard": {
+        "teacherGuidance": "Sapa siswa dengan hangat, lalu minta mereka memegang daun yang telah dibawa dari rumah."
+      }
+    },
+    {
+      "id": "scene-2",
+      "title": "Keajaiban Warna Hijau",
+      "cueCard": {
+        "teacherGuidance": "Jelaskan peran klorofil menggunakan analogi dapur pembuat makanan tanaman."
+      }
+    },
+    {
+      "id": "scene-3",
+      "title": "Refleksi & Diskusi Singkat",
+      "cueCard": {
+        "teacherGuidance": "Tanyakan kepada 2-3 siswa apa hal paling menarik yang baru mereka ketahui tentang daun."
+      }
+    }
+  ]
+}
