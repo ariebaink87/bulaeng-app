@@ -34,6 +34,16 @@ export default function Home(): React.ReactNode {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const handleGoHome = () => {
+    // 1. Reset racikan AI agar kembali ke tampilan Welcome Screen awal
+    setDailyAiPackage(null);
+
+    // 2. Jika ada URL landing page eksternal (Workers/Pages), arahkan ke sana
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.location.href = '/';
+    }
+  };
+
   if (!isBooted) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-white">
@@ -64,7 +74,7 @@ export default function Home(): React.ReactNode {
         {/* HEADER TOPBAR */}
         <header className="w-full max-w-3xl mx-auto flex items-center justify-between border-b border-slate-800/80 pb-4 mb-6">
           <button
-            onClick={() => window.location.reload()}
+            onClick={handleGoHome}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 transition-all cursor-pointer"
           >
             <span>←</span> Beranda BULAENG
