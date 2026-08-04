@@ -3,6 +3,7 @@ export interface AiDraftReport {
   observasi: string;
   aktivitas: string;
   dokumentasiUrl: string;
+  worksheetStatus: string;
   narasiAi: string;
   status: 'DRAFT' | 'TEACHER_APPROVED' | 'PRINCIPAL_APPROVED';
 }

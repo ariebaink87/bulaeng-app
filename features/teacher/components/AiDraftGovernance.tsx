@@ -24,7 +24,9 @@ export const AiDraftGovernance: React.FC<Props> = ({
 
     {!draftData ? (
       <div className="p-6 bg-slate-800/30 border border-dashed border-slate-800 rounded-xl text-center">
-        <p className="text-xs text-slate-500">Draft otomatis akan muncul di sini setelah sesi selesai.</p>
+        <p className="text-xs text-slate-500">
+          Draft otomatis (Presensi, Observasi, Aktivitas, Worksheet, & Narasi AI) akan muncul di sini setelah sesi mengajar selesai.
+        </p>
       </div>
     ) : (
       <div className="space-y-4">
@@ -41,7 +43,7 @@ export const AiDraftGovernance: React.FC<Props> = ({
 
         <div className="space-y-3 text-xs text-slate-300 bg-slate-800/60 p-4 rounded-xl border border-slate-700/80">
           <div>
-            <span className="text-slate-400 font-medium block mb-0.5">Presensi:</span>
+            <label className="text-slate-400 font-medium block mb-0.5">✓ Presensi Murid:</label>
             <input
               type="text"
               value={draftData.presensi}
@@ -49,8 +51,9 @@ export const AiDraftGovernance: React.FC<Props> = ({
               className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-slate-200"
             />
           </div>
+
           <div>
-            <span className="text-slate-400 font-medium block mb-0.5">Observasi Real-time:</span>
+            <label className="text-slate-400 font-medium block mb-0.5">✓ Observasi Real-time:</label>
             <input
               type="text"
               value={draftData.observasi}
@@ -58,8 +61,29 @@ export const AiDraftGovernance: React.FC<Props> = ({
               className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-slate-200"
             />
           </div>
+
           <div>
-            <span className="text-slate-400 font-medium block mb-1">Draft Narasi AI (Dapat Diedit Guru):</span>
+            <label className="text-slate-400 font-medium block mb-0.5">✓ Aktivitas & Dokumentasi:</label>
+            <input
+              type="text"
+              value={draftData.aktivitas}
+              onChange={(e) => onUpdateDraft({ ...draftData, aktivitas: e.target.value })}
+              className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="text-slate-400 font-medium block mb-0.5">✓ Status Worksheet:</label>
+            <input
+              type="text"
+              value={draftData.worksheetStatus}
+              onChange={(e) => onUpdateDraft({ ...draftData, worksheetStatus: e.target.value })}
+              className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-slate-200"
+            />
+          </div>
+
+          <div>
+            <label className="text-slate-400 font-medium block mb-1">✓ Draft Narasi AI (Validasi Guru):</label>
             <textarea
               value={draftData.narasiAi}
               onChange={(e) => onUpdateDraft({ ...draftData, narasiAi: e.target.value })}
@@ -79,7 +103,7 @@ export const AiDraftGovernance: React.FC<Props> = ({
           </button>
         ) : (
           <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-xl text-center">
-            ✓ Disetujui Guru & Diteruskan ke Kepsek
+            ✓ Disetujui Guru & Diteruskan ke Dashboard Kepsek
           </div>
         )}
       </div>

@@ -63,13 +63,15 @@ export function useTeacherSession() {
     try {
       await callBackendApi('/api/v1/advance', { classId: 'CLASS_B2', step: 'FINISH_LESSON' });
     } catch {
-      // Mock fallback
+      // Fallback mode saat offline
     } finally {
+      // Menyiapkan 5 Elemen Draft AI sesuai Tahap 3
       setDraftData({
         presensi: '15 / 15 Murid Hadir',
         observasi: 'Siswa sangat aktif saat menyanyikan lagu pembuka dan eksplorasi materi.',
         aktivitas: 'Eksplorasi Bentuk & Warna Daun di Halaman Sekolah',
         dokumentasiUrl: '/assets/mock-classroom.jpg',
+        worksheetStatus: '15 Lembar Kerja Mewarnai Selesai',
         narasiAi: 'Hari ini anak-anak diajak menjelajah materi Petualangan Daun. Kegiatan berlangsung interaktif dan kondusif.',
         status: 'DRAFT',
       });
