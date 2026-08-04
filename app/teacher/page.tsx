@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { socket, callBackendApi } from '@/services/backendClient';
 
 export default function TeacherDashboardPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [sessionState, setSessionState] = useState<'STANDBY' | 'ACTIVE' | 'FINISHED'>('STANDBY');
   const [currentScene, setCurrentScene] = useState<string>('Opening / Pembukaan Kelas');
   const [loading, setLoading] = useState<boolean>(false);
@@ -15,40 +16,52 @@ export default function TeacherDashboardPage() {
     status: string;
   } | null>(null);
 
-  // Setup Real-time WebSocket Listeners
+  // 1. Perlindungan SSR (Hanya berjalan di Client)
   useEffect(() => {
-    socket.connect();
+    setIsMounted(true);
+  }, []);
 
-    socket.on('connect', () => {
-      console.log('⚡ Connected to BULAENG Realtime Engine:', socket.id);
-      setIsConnected(true);
-    });
+  // 2. Setup WebSocket hanya setelah mounted
+  useEffect(() => {
+    if (!isMounted || !socket.on) return;
 
-    socket.on('disconnect', () => {
-      console.log('🔌 Disconnected from BULAENG Realtime Engine');
-      setIsConnected(false);
-    });
+    if (!socket.connected) {
+      socket.connect();
+    }
 
-    // Event saat adegan/status episode diperbarui dari backend
-    socket.on('SESSION_UPDATE', (data: { scene?: string; status?: 'STANDBY' | 'ACTIVE' | 'FINISHED' }) => {
+    const onConnect = () => setIsConnected(true);
+    const onDisconnect = () => setIsConnected(false);
+
+    const onSessionUpdate = (data: { scene?: string; status?: 'STANDBY' | 'ACTIVE' | 'FINISHED' }) => {
       if (data.scene) setCurrentScene(data.scene);
       if (data.status) setSessionState(data.status);
-    });
+    };
 
-    // Event saat AI selesai menyusun draft di backend
-    socket.on('AI_DRAFT_READY', (draft: { presensi: string; observasi: string; narasiAi: string; status: string }) => {
+    const onAiDraftReady = (draft: { presensi: string; observasi: string; narasiAi: string; status: string }) => {
       setDraftData(draft);
       setSessionState('FINISHED');
-    });
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('SESSION_UPDATE', onSessionUpdate);
+    socket.on('AI_DRAFT_READY', onAiDraftReady);
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('SESSION_UPDATE');
-      socket.off('AI_DRAFT_READY');
-      socket.disconnect();
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('SESSION_UPDATE', onSessionUpdate);
+      socket.off('AI_DRAFT_READY', onAiDraftReady);
     };
-  }, []);
+  }, [isMounted]);
+
+  if (!isMounted) {
+    return (
+      <div className="p-6 text-slate-400 font-sans">
+        Memuat Dashboard Guru BULAENG OS...
+      </div>
+    );
+  }
 
   // Tahap 2: Mulai Episode Mengajar
   const handleStartEpisode = async () => {
@@ -161,7 +174,7 @@ export default function TeacherDashboardPage() {
               <button
                 onClick={handleStartEpisode}
                 disabled={loading}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl transition shadow-lg"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl transition shadow-lg disabled:opacity-50"
               >
                 {loading ? 'Menghubungkan...' : '🟨 MULAI EPISODE'}
               </button>
@@ -189,7 +202,7 @@ export default function TeacherDashboardPage() {
                 <button
                   onClick={handleFinishEpisode}
                   disabled={loading}
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl shadow-md transition"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl shadow-md transition disabled:opacity-50"
                 >
                   {loading ? 'Memproses...' : 'Selesai Mengajar'}
                 </button>
@@ -259,7 +272,7 @@ export default function TeacherDashboardPage() {
                 <button
                   onClick={handleApproveDraft}
                   disabled={loading}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition shadow-md"
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition shadow-md disabled:opacity-50"
                 >
                   {loading ? 'Menyimpan...' : 'Setujui & Kirim ke Kepsek'}
                 </button>

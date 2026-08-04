@@ -2,10 +2,13 @@ import { io, Socket } from 'socket.io-client';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-// Socket singleton (autoConnect: false agar terhubung saat komponen di-mount)
-export const socket: Socket = io(BACKEND_URL, {
-  autoConnect: false,
-});
+// Inisialisasi socket HANYA jika berada di browser (Client-Side)
+export const socket: Socket = typeof window !== 'undefined'
+  ? io(BACKEND_URL, {
+      autoConnect: false,
+      transports: ['websocket'],
+    })
+  : ({} as Socket);
 
 export async function callBackendApi(endpoint: string, body: object) {
   try {
