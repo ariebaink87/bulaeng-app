@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 // 1. Socket.io Client untuk Real-time Sync
 export const socket = io(BACKEND_URL, {

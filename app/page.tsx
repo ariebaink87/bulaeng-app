@@ -1,202 +1,235 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useKernelStore } from '@/stores/kernel/useKernelStore';
-import { useSessionStore } from '@/stores/useSessionStore';
-import { APP_CONFIG } from '@/config/constants';
-import ClassroomMode from '@/components/ClassroomMode';
-import ClassSettingsModal from '@/components/ClassroomMode/ClassSettingsModal';
-import OnboardingModal from '@/stores/ui/OnboardingModal';
-import { Episode, Scene } from '@/types/content';
-import { DailyLessonPackage } from '@/services/aiEngine';
+import React, { useState } from 'react';
+import { callBackendApi } from '@/services/backendClient';
 
-// Import data episode default JSON
-import rawEpisodeData from '@/content/universe/dunia-alam/jelajah-alam/episode-001-petualangan-daun/episode.json';
+export default function TeacherDashboardPage() {
+  const [sessionState, setSessionState] = useState<'STANDBY' | 'ACTIVE' | 'FINISHED'>('STANDBY');
+  const [currentScene, setCurrentScene] = useState<string>('Opening / Pembukaan Kelas');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [draftData, setDraftData] = useState<{
+    presensi: string;
+    observasi: string;
+    narasiAi: string;
+    status: string;
+  } | null>(null);
 
-export default function Home(): React.ReactNode {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [dailyAiPackage, setDailyAiPackage] = useState<DailyLessonPackage | null>(null);
-
-  const isBooted = useKernelStore((state) => state.isBooted);
-  const { isLiveSession, startSession } = useSessionStore();
-  
-  const currentEpisode = rawEpisodeData as unknown as Episode;
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === APP_CONFIG.COMMAND_PALETTE_HOTKEY) {
-        e.preventDefault();
-        alert(`🔍 ${APP_CONFIG.NAME}: Cari murid, modul, atau dokumen...`);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const handleGoHome = () => {
-    // Navigasi langsung keluar dari Vercel menuju Landing Page Cloudflare Workers
-    window.location.href = 'https://bulaeng-landing.bulaeng.workers.dev/';
+  // Tahap 2: Mulai Episode Mengajar
+  const handleStartEpisode = async () => {
+    setLoading(true);
+    try {
+      await callBackendApi('/api/classroom/session', {
+        classId: 'CLASS_B2',
+        teacherId: 'TEACHER_BU_SITI',
+        action: 'START_EPISODE'
+      });
+      setSessionState('ACTIVE');
+    } catch (error) {
+      console.warn('Backend offline/mock mode aktif:', error);
+      setSessionState('ACTIVE');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!isBooted) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-white">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="font-mono text-sm text-slate-400">Booting BULAENG Kernel OS...</p>
-        </div>
-      </div>
-    );
-  }
+  // Selesai Mengajar -> Pemicu AI Pembuat Draft (Tahap 3)
+  const handleFinishEpisode = async () => {
+    setLoading(true);
+    try {
+      await callBackendApi('/api/v1/advance', {
+        classId: 'CLASS_B2',
+        step: 'FINISH_LESSON'
+      });
+    } catch (error) {
+      console.warn('Advance trigger mock mode:', error);
+    } finally {
+      setDraftData({
+        presensi: '15 / 15 Murid Hadir',
+        observasi: 'Siswa sangat aktif saat menyanyikan lagu pembuka dan eksplorasi materi.',
+        narasiAi: 'Hari ini anak-anak diajak menjelajah materi Petualangan Daun. Kegiatan berlangsung interaktif dan kondusif.',
+        status: 'DRAFT'
+      });
+      setSessionState('FINISHED');
+      setLoading(false);
+    }
+  };
 
-  if (isLiveSession) {
-    return <ClassroomMode />;
-  }
+  // Tahap 4: Governance & Approval Guru
+  const handleApproveDraft = async () => {
+    setLoading(true);
+    try {
+      await callBackendApi('/api/v1/boot', {
+        action: 'APPROVE_BY_TEACHER',
+        payload: draftData
+      });
+      setDraftData((prev) => (prev ? { ...prev, status: 'TEACHER_APPROVED' } : null));
+    } catch (error) {
+      setDraftData((prev) => (prev ? { ...prev, status: 'TEACHER_APPROVED' } : null));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <>
-      <OnboardingModal />
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header Context Bar */}
+      <div className="flex justify-between items-center bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-md">
+        <div>
+          <span className="text-xs uppercase tracking-wider text-amber-400 font-semibold">
+            BULAENG Classroom OS
+          </span>
+          <h1 className="text-2xl font-bold mt-1">Dashboard Guru</h1>
+          <p className="text-sm text-slate-400">
+            Kelas B2 — Bu Siti | Moda Eksekusi Pembelajaran
+          </p>
+        </div>
+        <div className="bg-slate-800 px-4 py-2 rounded-xl text-right border border-slate-700">
+          <p className="text-xs text-slate-400">Status Sesi</p>
+          <p className={`text-sm font-semibold ${
+            sessionState === 'ACTIVE' ? 'text-amber-400 animate-pulse' : 
+            sessionState === 'FINISHED' ? 'text-blue-400' : 'text-emerald-400'
+          }`}>
+            {sessionState === 'STANDBY' && '● Standby / Siap'}
+            {sessionState === 'ACTIVE' && '● Episode Berjalan'}
+            {sessionState === 'FINISHED' && '● Menunggu Review Guru'}
+          </p>
+        </div>
+      </div>
 
-      <ClassSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onSaveAndActivateAI={(pkg) => setDailyAiPackage(pkg)}
-      />
-
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col p-6 font-sans">
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* HEADER TOPBAR */}
-        <header className="w-full max-w-3xl mx-auto flex items-center justify-between border-b border-slate-800/80 pb-4 mb-6">
-          <button
-            onClick={handleGoHome}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 transition-all cursor-pointer"
-          >
-            <span>←</span> Beranda BULAENG
-          </button>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 transition-all cursor-pointer"
-            >
-              ⚙️ Setup Kelas
-            </button>
-            <button
-              onClick={() => startSession(currentEpisode)}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-lg shadow-amber-400/10"
-            >
-              ▶ Mulai Mengajar
-            </button>
+        {/* Card Tahap 2: Eksekusi Classroom */}
+        <div className="md:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b pb-3 border-slate-800">
+            <h2 className="font-bold text-slate-100 text-lg">
+              1. Sesi Mengajar (Classroom Mode)
+            </h2>
+            <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-2.5 py-1 rounded-full font-medium">
+              Tahap 2
+            </span>
           </div>
-        </header>
 
-        {/* UTAMA: DASHBOARD RACIKAN OTOMATIS AI */}
-        <main className="flex-1 flex flex-col items-center justify-center max-w-3xl mx-auto w-full space-y-6">
-          
-          {dailyAiPackage ? (
-            /* DASBHOARD SETELAH AI AKTIF */
-            <div className="w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6 animate-in fade-in duration-300">
-              
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full">
-                    🤖 AI Racikan Hari Ini • {dailyAiPackage.date}
-                  </span>
-                  <h1 className="text-xl font-bold text-white pt-2">
-                    {dailyAiPackage.targetObjective.objective}
-                  </h1>
-                </div>
-                <span className="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-xl">
-                  {dailyAiPackage.targetObjective.group}
-                </span>
-              </div>
-
-              {/* VIDEO 3D OTOMATIS DARI AI */}
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex gap-4 items-center">
-                <div className="w-16 h-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
-                  {dailyAiPackage.featured3DVideo.thumbnail}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">
-                      🎬 Video Animasi 3D Hari Ini
-                    </span>
-                    <span className="text-[10px] text-slate-400">⏱️ {dailyAiPackage.featured3DVideo.duration}</span>
-                  </div>
-                  <h3 className="text-sm font-bold text-white truncate">{dailyAiPackage.featured3DVideo.title}</h3>
-                  <p className="text-xs text-slate-400 truncate">{dailyAiPackage.featured3DVideo.description}</p>
-                </div>
-              </div>
-
-              {/* ANALISIS SEGMENTASI MURID OTOMATIS DARI AI */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-950/80 border border-amber-500/20 rounded-2xl p-4 space-y-2">
-                  <p className="text-xs font-bold text-amber-400">🟡 Perlu Pendampingan Khusus</p>
-                  <div className="space-y-1">
-                    {dailyAiPackage.studentSegmentation.needSupport.map((std) => (
-                      <div key={std.id} className="text-xs bg-slate-900 p-2 rounded-xl text-slate-300">
-                        • {std.name}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-slate-950/80 border border-emerald-500/20 rounded-2xl p-4 space-y-2">
-                  <p className="text-xs font-bold text-emerald-400">🟢 Pengayaan (Siap Mandiri)</p>
-                  <div className="space-y-1">
-                    {dailyAiPackage.studentSegmentation.advanced.map((std) => (
-                      <div key={std.id} className="text-xs bg-slate-900 p-2 rounded-xl text-slate-300">
-                        • {std.name}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* PEMANTIK DISKUSI GURU DARI AI */}
-              <div className="bg-slate-950/50 border border-slate-800 p-4 rounded-2xl space-y-2">
-                <p className="text-xs font-bold text-slate-300">💬 Panduan Pemantik Diskusi Guru:</p>
-                <ul className="text-xs text-slate-400 space-y-1 list-disc list-inside">
-                  {dailyAiPackage.teacherPrompts.map((prompt, i) => (
-                    <li key={i}>{prompt}</li>
-                  ))}
-                </ul>
-              </div>
-
+          {sessionState === 'STANDBY' && (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-400">
+                Mulai sesi pembelajaran interaktif. AI akan membantu merekam presensi dan poin observasi kelas secara terstruktur.
+              </p>
               <button
-                onClick={() => startSession(currentEpisode)}
-                className="w-full py-4 bg-amber-400 hover:bg-amber-300 text-slate-950 text-base font-extrabold rounded-2xl shadow-xl shadow-amber-400/10 transition-all transform active:scale-98 cursor-pointer flex items-center justify-center space-x-2"
+                onClick={handleStartEpisode}
+                disabled={loading}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl transition shadow-lg"
               >
-                <span>🟨</span>
-                <span>MULAI KELAS DENGAN BAHAN AI HARI INI</span>
-              </button>
-
-            </div>
-          ) : (
-            /* TAMPILAN AWAL SEBELUM AI AKTIF */
-            <div className="w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-6">
-              <div className="w-16 h-16 bg-amber-400/10 border border-amber-400/20 rounded-2xl flex items-center justify-center text-3xl mx-auto">
-                🤖
-              </div>
-              <div className="space-y-2">
-                <h1 className="text-xl font-bold text-white">Selamat Datang di BULAENG Kernel OS</h1>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  Setup kelas kamu 1x saja, AI akan meracik seluruh media video 3D, memetakan murid, dan menyiapkan bahan ajar otomatis setiap hari.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsSettingsOpen(true)}
-                className="px-6 py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-extrabold rounded-2xl shadow-xl transition-all cursor-pointer"
-              >
-                ⚙️ Buka Setup Kelas & Aktifkan AI
+                {loading ? 'Menghubungkan...' : '🟨 MULAI EPISODE'}
               </button>
             </div>
           )}
 
-        </main>
+          {sessionState === 'ACTIVE' && (
+            <div className="space-y-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400 uppercase">Adegan Aktif:</span>
+                <span className="text-xs bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded font-semibold border border-amber-500/30">
+                  {currentScene}
+                </span>
+              </div>
+              <p className="text-sm text-slate-300">
+                Sesi sedang berlangsung. Kontrol alur mengajar dan selesaikan sesi untuk memicu penyusunan draft oleh AI.
+              </p>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setCurrentScene('Aktivitas Utama: Eksplorasi Daun')}
+                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-xl border border-slate-600 transition"
+                >
+                  Lanjut Adegan
+                </button>
+                <button
+                  onClick={handleFinishEpisode}
+                  disabled={loading}
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl shadow-md transition"
+                >
+                  {loading ? 'Memproses...' : 'Selesai Mengajar'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {sessionState === 'FINISHED' && (
+            <div className="p-6 bg-slate-800/40 border border-slate-800 rounded-xl text-center space-y-1">
+              <p className="text-sm font-semibold text-emerald-400">Sesi Mengajar Hari Ini Selesai 🎉</p>
+              <p className="text-xs text-slate-400">Silahkan periksa dan evaluasi hasil draft AI pada panel di sebelah kanan.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Card Tahap 3 & 4: Review & Governance */}
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b pb-3 border-slate-800">
+            <h2 className="font-bold text-slate-100 text-lg">
+              2. Draft AI & Governance
+            </h2>
+            <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs px-2.5 py-1 rounded-full font-medium">
+              Tahap 3 & 4
+            </span>
+          </div>
+
+          {!draftData ? (
+            <div className="p-6 bg-slate-800/30 border border-dashed border-slate-800 rounded-xl text-center">
+              <p className="text-xs text-slate-500">
+                Draft otomatis akan muncul di sini setelah sesi mengajar diselesaikan.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-semibold text-slate-400">Status AI Draft:</span>
+                <span className={`text-xs px-2.5 py-0.5 rounded font-bold border ${
+                  draftData.status === 'DRAFT' 
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                }`}>
+                  {draftData.status}
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs text-slate-300 bg-slate-800/60 p-4 rounded-xl border border-slate-700/80">
+                <div>
+                  <span className="text-slate-400 font-medium block mb-0.5">Presensi:</span>
+                  <span className="font-semibold text-slate-200">{draftData.presensi}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-medium block mb-0.5">Observasi Real-time:</span>
+                  <span className="text-slate-200">{draftData.observasi}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-medium block mb-1">Draft Narasi AI (Dapat Diedit):</span>
+                  <textarea
+                    value={draftData.narasiAi}
+                    onChange={(e) => setDraftData({ ...draftData, narasiAi: e.target.value })}
+                    className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {draftData.status === 'DRAFT' ? (
+                <button
+                  onClick={handleApproveDraft}
+                  disabled={loading}
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition shadow-md"
+                >
+                  {loading ? 'Menyimpan...' : 'Setujui & Kirim ke Kepsek'}
+                </button>
+              ) : (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-xl text-center">
+                  ✓ Disetujui Guru & Diteruskan ke Kepsek
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
       </div>
-    </>
+    </div>
   );
 }
