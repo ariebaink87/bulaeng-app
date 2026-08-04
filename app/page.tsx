@@ -1,18 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
-import { callBackendApi } from '@/services/backendClient';
+import React, { useState, useEffect } from 'react';
+import { socket, callBackendApi } from '@/services/backendClient';
 
 export default function TeacherDashboardPage() {
   const [sessionState, setSessionState] = useState<'STANDBY' | 'ACTIVE' | 'FINISHED'>('STANDBY');
   const [currentScene, setCurrentScene] = useState<string>('Opening / Pembukaan Kelas');
   const [loading, setLoading] = useState<boolean>(false);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
   const [draftData, setDraftData] = useState<{
     presensi: string;
     observasi: string;
     narasiAi: string;
     status: string;
   } | null>(null);
+
+  // Setup Real-time WebSocket Listeners
+  useEffect(() => {
+    socket.connect();
+
+    socket.on('connect', () => {
+      console.log('⚡ Connected to BULAENG Realtime Engine:', socket.id);
+      setIsConnected(true);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Disconnected from BULAENG Realtime Engine');
+      setIsConnected(false);
+    });
+
+    // Event saat adegan/status episode diperbarui dari backend
+    socket.on('SESSION_UPDATE', (data: { scene?: string; status?: 'STANDBY' | 'ACTIVE' | 'FINISHED' }) => {
+      if (data.scene) setCurrentScene(data.scene);
+      if (data.status) setSessionState(data.status);
+    });
+
+    // Event saat AI selesai menyusun draft di backend
+    socket.on('AI_DRAFT_READY', (draft: { presensi: string; observasi: string; narasiAi: string; status: string }) => {
+      setDraftData(draft);
+      setSessionState('FINISHED');
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('SESSION_UPDATE');
+      socket.off('AI_DRAFT_READY');
+      socket.disconnect();
+    };
+  }, []);
 
   // Tahap 2: Mulai Episode Mengajar
   const handleStartEpisode = async () => {
@@ -75,9 +111,16 @@ export default function TeacherDashboardPage() {
       {/* Header Context Bar */}
       <div className="flex justify-between items-center bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-md">
         <div>
-          <span className="text-xs uppercase tracking-wider text-amber-400 font-semibold">
-            BULAENG Classroom OS
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-wider text-amber-400 font-semibold">
+              BULAENG Classroom OS
+            </span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+              isConnected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400'
+            }`}>
+              {isConnected ? '⚡ Realtime Connected' : '○ Offline / Mock'}
+            </span>
+          </div>
           <h1 className="text-2xl font-bold mt-1">Dashboard Guru</h1>
           <p className="text-sm text-slate-400">
             Kelas B2 — Bu Siti | Moda Eksekusi Pembelajaran
