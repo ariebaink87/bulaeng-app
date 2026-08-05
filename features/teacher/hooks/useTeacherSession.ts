@@ -10,6 +10,9 @@ export function useTeacherSession() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [draftData, setDraftData] = useState<AiDraftReport | null>(null);
 
+  // Store Session ID agar konsisten selama sesi berjalan
+  const [sessionId, setSessionId] = useState<string>('SES-CLASS-B2');
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -20,9 +23,12 @@ export function useTeacherSession() {
 
     const onConnect = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);
-    const onSessionUpdate = (data: { scene?: string; status?: SessionState }) => {
-      if (data.scene) setCurrentScene(data.scene);
-      if (data.status) setSessionState(data.status);
+    const onStateChanged = (data: any) => {
+      if (data.current_moment) setCurrentScene(data.current_moment);
+      if (data.system_status) {
+        if (data.system_status === 'RUNNING') setSessionState('ACTIVE');
+        if (data.system_status === 'ENDED') setSessionState('FINISHED');
+      }
     };
     const onAiDraftReady = (draft: AiDraftReport) => {
       setDraftData(draft);
@@ -31,27 +37,33 @@ export function useTeacherSession() {
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
-    socket.on('SESSION_UPDATE', onSessionUpdate);
+    socket.on('state_changed', onStateChanged);
     socket.on('AI_DRAFT_READY', onAiDraftReady);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-      socket.off('SESSION_UPDATE', onSessionUpdate);
+      socket.off('state_changed', onStateChanged);
       socket.off('AI_DRAFT_READY', onAiDraftReady);
     };
   }, [isMounted]);
 
   const handleStartEpisode = async () => {
     setLoading(true);
+    const newSessionId = `SES-${Math.floor(1000 + Math.random() * 9000)}`;
+    setSessionId(newSessionId);
+
     try {
+      // ✅ Sesuai kontrak Backend (action: 'BOOT', sessionId, classId, teacherId)
       await callBackendApi('/api/classroom/session', {
+        action: 'BOOT',
+        sessionId: newSessionId,
         classId: 'CLASS_B2',
-        teacherId: 'TEACHER_BU_SITI',
-        action: 'START_EPISODE',
+        teacherId: 'TEACHER_BU_SITI'
       });
       setSessionState('ACTIVE');
-    } catch {
+    } catch (error) {
+      console.warn('Backend offline/error, falling back to ACTIVE local state', error);
       setSessionState('ACTIVE');
     } finally {
       setLoading(false);
@@ -61,11 +73,14 @@ export function useTeacherSession() {
   const handleFinishEpisode = async () => {
     setLoading(true);
     try {
-      await callBackendApi('/api/v1/advance', { classId: 'CLASS_B2', step: 'FINISH_LESSON' });
+      // ✅ Menggunakan action 'SHUTDOWN' ke endpoint classroom/session
+      await callBackendApi('/api/classroom/session', {
+        action: 'SHUTDOWN',
+        sessionId: sessionId
+      });
     } catch {
       // Fallback mode saat offline
     } finally {
-      // Menyiapkan 5 Elemen Draft AI sesuai Tahap 3
       setDraftData({
         presensi: '15 / 15 Murid Hadir',
         observasi: 'Siswa sangat aktif saat menyanyikan lagu pembuka dan eksplorasi materi.',
