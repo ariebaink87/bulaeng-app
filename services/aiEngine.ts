@@ -1,5 +1,9 @@
-import { CURRICULUM_PRESETS, CurriculumItem } from '@/content/curriculumPreset';
-import { VIDEO_STORE_DATA, VideoModuleItem } from '@/content/videoStoreData';
+import { 
+  CURRICULUM_PRESET, 
+  VIDEO_STORE_DATA, 
+  CurriculumItem, 
+  VideoModuleItem 
+} from '@/content';
 
 export interface StudentProfile {
   id: string;
@@ -26,14 +30,14 @@ export function generateDailyPackage(
   studentList: string[]
 ): DailyLessonPackage {
   // 1. AI memilih Target Pembelajaran yang relevan
-  const matchedObjectives = CURRICULUM_PRESETS.filter(
-    (item) => item.group === group && item.semester === semester
+  const matchedObjectives = CURRICULUM_PRESET.filter(
+    (item: CurriculumItem) => item.group === group && item.semester === semester
   );
-  const activeTarget = matchedObjectives[0] || CURRICULUM_PRESETS[0];
+  const activeTarget = matchedObjectives[0] || CURRICULUM_PRESET[0];
 
   // 2. AI Otomatis Memasangkan Video Animasi 3D yang Cocok
   const matchedVideo = VIDEO_STORE_DATA.find(
-    (vid) => vid.targetObjective === activeTarget.objective
+    (vid: any) => vid.targetObjective === activeTarget.objective
   ) || VIDEO_STORE_DATA[0];
 
   // 3. AI Otomatis Membagi Segmentasi Murid
