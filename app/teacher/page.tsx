@@ -2,39 +2,67 @@
 
 import React, { useState } from 'react';
 import { useTeacherSetup } from '@/features/teacher/hooks/useTeacherSetup';
+import { WelcomeScreen } from '@/features/teacher/components/setup/WelcomeScreen';
 import { SchoolClassSetupForm } from '@/features/teacher/components/setup/SchoolClassSetupForm';
 import { StudentDataForm } from '@/features/teacher/components/setup/StudentDataForm';
 import { CurriculumModuleForm } from '@/features/teacher/components/setup/CurriculumModuleForm';
 import { TeacherHeader } from '@/features/teacher/components/TeacherHeader';
 import { AiDraftGovernance } from '@/features/teacher/components/AiDraftGovernance';
+import { AiVideoModules } from '@/features/teacher/components/AiVideoModules';
 import { useTeacherSession } from '@/features/teacher/hooks/useTeacherSession';
 
 export default function TeacherPage() {
   const [isSetupDone, setIsSetupDone] = useState<boolean>(false);
+  const [showWelcome, setShowWelcome] = useState<boolean>(true);
 
   const setup = useTeacherSetup(() => setIsSetupDone(true));
   const session = useTeacherSession();
 
-  if (!session.isMounted) return <div className="p-6 text-slate-400">Loading BULAENG OS...</div>;
+  if (!session.isMounted) {
+    return (
+      <div className="min-h-screen bg-[#111B38] flex items-center justify-center p-6 text-[#D4AF37] font-poppins font-semibold">
+        Loading BULAENG OS...
+      </div>
+    );
+  }
 
-  // TAHAP 1: SETUP AWAL (JIKA BELUM SELESAI)
+  // 1. WELCOME SCREEN CINEMATIC
+  if (showWelcome) {
+    return <WelcomeScreen onComplete={() => setShowWelcome(false)} />;
+  }
+
+  // 2. TAHAP 1: SETUP FORMULIR DENGAN BACKGROUND NAVY & GOLD DOT GRID
   if (!isSetupDone) {
     return (
-      <div className="min-h-screen bg-[#F5F7FA] p-6 flex items-center justify-center">
-        <div className="w-full max-w-xl bg-white border border-[#A0A6B1]/20 rounded-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden">
-          {/* Card Header Navy */}
-          <div className="bg-[#111B38] p-6 text-white border-b-2 border-[#D4AF37]">
-            <span className="text-[10px] uppercase text-[#D4AF37] font-bold tracking-wider font-poppins">
+      <div 
+        className="min-h-screen bg-[#111B38] relative flex items-center justify-center p-6 sm:p-10 overflow-hidden animate-fade-in"
+        style={{
+          backgroundImage: `radial-gradient(rgba(212, 175, 55, 0.25) 1.5px, transparent 1.5px)`,
+          backgroundSize: `28px 28px`
+        }}
+      >
+        {/* Glowing Ambient Light */}
+        <div className="absolute top-10 left-10 w-[500px] h-[500px] bg-[#D4AF37]/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-[#D4AF37]/10 rounded-full blur-[140px] pointer-events-none" />
+
+        {/* Card Form Container */}
+        <div className="w-full max-w-2xl bg-[#111B38]/95 backdrop-blur-md border border-[#D4AF37]/40 rounded-[28px] shadow-[0_25px_60px_rgba(0,0,0,0.6)] overflow-hidden relative z-10">
+          
+          {/* Header Navy */}
+          <div className="bg-[#111B38] p-8 text-white border-b border-[#D4AF37]/30">
+            <span className="text-xs uppercase text-[#D4AF37] font-bold tracking-widest font-poppins">
               Tahap 1: Ingestion
             </span>
-            <h2 className="text-xl font-bold font-poppins mt-0.5">Setup Awal Guru & Kelas Baru</h2>
-            <p className="text-xs text-[#A0A6B1] font-inter">
+            <h2 className="text-3xl font-extrabold font-poppins mt-1 text-white tracking-tight">
+              Setup Awal Guru & Kelas Baru
+            </h2>
+            <p className="text-sm text-[#A0A6B1] font-inter mt-1.5">
               Input data sekali saja agar AI dapat mengenali konteks pembelajaran.
             </p>
           </div>
 
-          {/* Card Body Putih */}
-          <div className="p-6">
+          {/* Form Content */}
+          <div className="p-8">
             {setup.currentStep === 1 && (
               <SchoolClassSetupForm
                 formData={setup.formData}
@@ -68,34 +96,53 @@ export default function TeacherPage() {
     );
   }
 
-  // TAHAP 2-4: EXECUTION DASHBOARD (JIKA SETUP SELESAI)
+  // 3. MAIN DASHBOARD GURU DENGAN GOLD DOT GRID BACKGROUND
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <TeacherHeader
-        isConnected={session.isConnected}
-        sessionState={session.sessionState}
-        universeName={setup.formData.selectedUniverse}
-        className={setup.formData.className || 'Kelas Baru'}
-      />
+    <div
+      className="min-h-screen bg-[#111B38] relative p-6 sm:p-8 text-white overflow-x-hidden"
+      style={{
+        backgroundImage: `radial-gradient(rgba(212, 175, 55, 0.25) 1.5px, transparent 1.5px)`,
+        backgroundSize: `28px 28px`,
+      }}
+    >
+      {/* Ambient Light Background */}
+      <div className="absolute top-10 left-10 w-[500px] h-[500px] bg-[#D4AF37]/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-[#D4AF37]/10 rounded-full blur-[140px] pointer-events-none" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-          <h2 className="font-bold text-slate-100 text-lg">1. Eksekusi Kelas (Classroom Mode)</h2>
-          <button
-            onClick={session.handleStartEpisode}
-            disabled={session.loading}
-            className="w-full py-3 bg-[#D4AF37] hover:bg-[#c3a030] text-[#111B38] font-bold rounded-xl transition shadow-md"
-          >
-            MULAI EPISODE
-          </button>
+      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
+        {/* Header Dashboard dengan Tombol Beranda */}
+        <TeacherHeader
+          isConnected={session.isConnected}
+          sessionState={session.sessionState}
+          universeName={setup.formData.selectedUniverse || 'Alam Semesta'}
+          className={setup.formData.className || 'Kelas B2'}
+        />
+
+        {/* Section 1 & 2: Eksekusi Kelas & Review Draft Governance */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-[#111B38]/90 backdrop-blur-md border border-[#D4AF37]/30 p-6 rounded-2xl space-y-4 shadow-xl">
+            <h2 className="font-extrabold text-white text-lg font-poppins">
+              1. Eksekusi Kelas (Classroom Mode)
+            </h2>
+            <button
+              onClick={session.handleStartEpisode}
+              disabled={session.loading}
+              className="w-full py-4 bg-[#D4AF37] hover:bg-[#c3a030] text-[#111B38] font-extrabold text-base rounded-xl transition-all shadow-lg active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+            >
+              MULAI EPISODE
+            </button>
+          </div>
+
+          <AiDraftGovernance
+            draftData={session.draftData}
+            loading={session.loading}
+            onUpdateDraft={(updated) => session.setDraftData(updated)}
+            onApprove={session.handleApproveDraft}
+          />
         </div>
 
-        <AiDraftGovernance
-          draftData={session.draftData}
-          loading={session.loading}
-          onUpdateDraft={(updated) => session.setDraftData(updated)}
-          onApprove={session.handleApproveDraft}
-        />
+        {/* Section 3: Modul Video Pembelajaran AI */}
+        <AiVideoModules />
       </div>
     </div>
   );
