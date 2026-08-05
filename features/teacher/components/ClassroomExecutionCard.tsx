@@ -1,49 +1,56 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ClassroomExecutionCardProps {
-  sessionState: string;
-  loading: boolean;
-  onStartEpisode: () => void;
+  sessionState?: string;
+  loading?: boolean;
+  onStartEpisode?: () => void;
   onEndEpisode?: () => void;
 }
 
 export const ClassroomExecutionCard: React.FC<ClassroomExecutionCardProps> = ({
   sessionState,
-  loading,
+  loading = false,
   onStartEpisode,
   onEndEpisode,
 }) => {
-  const isActive = sessionState === 'ACTIVE';
+  // Menggunakan state lokal yang disinkronkan dengan sessionState, default: false (Inaktif/Mulai)
+  const [isClassActive, setIsClassActive] = useState<boolean>(false);
 
-  const handleButtonClick = () => {
-    if (isActive) {
-      if (onEndEpisode) {
-        onEndEpisode();
-      } else {
-        onStartEpisode();
-      }
+  // Efek untuk menyinkronkan dengan sessionState jika ada dari backend
+  useEffect(() => {
+    if (sessionState !== undefined) {
+      setIsClassActive(sessionState === 'ACTIVE');
+    }
+  }, [sessionState]);
+
+  const handleToggleClass = () => {
+    if (isClassActive) {
+      // Jika kelas sedang aktif -> Akhiri Kelas (Ubah ke Merah -> Gold)
+      if (onEndEpisode) onEndEpisode();
+      setIsClassActive(false);
     } else {
-      onStartEpisode();
+      // Jika kelas belum mulai -> Mulai Kelas (Ubah ke Gold -> Merah)
+      if (onStartEpisode) onStartEpisode();
+      setIsClassActive(true);
     }
   };
 
   return (
     <div className="bg-[#111B38]/95 backdrop-blur-md border border-[#D4AF37]/30 p-6 rounded-[20px] space-y-4 shadow-[0_12px_40px_rgba(0,0,0,0.25)]">
-      {/* Heading Poppins SemiBold */}
       <h2 className="font-poppins font-semibold text-white text-lg tracking-tight">
         1. Eksekusi Kelas (Classroom Mode)
       </h2>
 
-      {/* Button System sesuai BLG-DS-001 (Radius 14px, Warna Standar) */}
+      {/* Tombol Eksekusi sesuai BLG-DS-001 (Radius 14px) */}
       <button
-        onClick={handleButtonClick}
+        onClick={handleToggleClass}
         disabled={loading}
         className={`w-full py-4 font-poppins font-extrabold text-base rounded-[14px] transition-all duration-300 shadow-md active:scale-[0.99] disabled:opacity-50 cursor-pointer ${
-          isActive
-            ? 'bg-[#E74C3C] hover:bg-[#c0392b] text-white' // Danger Red untuk Akhiri Episode
-            : 'bg-[#D4AF37] hover:bg-[#c3a030] text-[#111B38]' // Primary Gold untuk Mulai Episode
+          isClassActive
+            ? 'bg-[#E74C3C] hover:bg-[#c0392b] text-white shadow-[#E74C3C]/20' // Danger Red (Akhiri Kelas)
+            : 'bg-[#D4AF37] hover:bg-[#c3a030] text-[#111B38] shadow-[#D4AF37]/20' // Primary Gold (Mulai Kelas)
         }`}
       >
         {loading ? (
@@ -54,10 +61,10 @@ export const ClassroomExecutionCard: React.FC<ClassroomExecutionCardProps> = ({
             </svg>
             MEMPROSES...
           </span>
-        ) : isActive ? (
-          'AKHIRI EPISODE'
+        ) : isClassActive ? (
+          'AKHIRI KELAS'
         ) : (
-          'MULAI EPISODE'
+          'MULAI KELAS'
         )}
       </button>
     </div>

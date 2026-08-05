@@ -125,7 +125,7 @@ export default function TeacherPage() {
             sessionState={session.sessionState}
             loading={session.loading}
             onStartEpisode={session.handleStartEpisode}
-            onEndEpisode={(session as any).handleEndEpisode}
+            onEndEpisode={(session as any).handleEndEpisode || session.handleStartEpisode}
           />
 
           <AiDraftGovernance
