@@ -1,6 +1,13 @@
 import { io, Socket } from 'socket.io-client';
+import { 
+  RegisterTeacherInput, 
+  LoginTeacherInput, 
+  AuthResult, 
+  AuthStatusResult 
+} from '@/features/teacher/types/auth.contract';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://bulaeng-platform-omega.vercel.app';
+const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
 // Inisialisasi socket HANYA jika berada di browser (Client-Side)
 export const socket: Socket = typeof window !== 'undefined'
@@ -19,6 +26,9 @@ export const socket: Socket = typeof window !== 'undefined'
     })
   : ({} as Socket);
 
+/**
+ * Helper dasar untuk pemanggilan API generik
+ */
 export async function callBackendApi(endpoint: string, body: object) {
   try {
     const response = await fetch(`${BACKEND_URL}${endpoint}`, {
@@ -40,3 +50,82 @@ export async function callBackendApi(endpoint: string, body: object) {
     throw error;
   }
 }
+
+/**
+ * Service Layanan Autentikasi Guru (bulaeng-platform backend)
+ */
+export const authBackendService = {
+  /**
+   * Mengecek status sesi guru (apakah sudah mendaftar & terautentikasi)
+   */
+  async checkSessionStatus(): Promise<AuthStatusResult> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('blg_auth_token') : null;
+
+    if (!token) {
+      return { isRegistered: false, isAuthenticated: false };
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!res.ok) throw new Error('Session expired');
+
+      const data = await res.json();
+      return {
+        isRegistered: true,
+        isAuthenticated: true,
+        teacher: data.teacher
+      };
+    } catch {
+      return { isRegistered: true, isAuthenticated: false };
+    }
+  },
+
+  /**
+   * Registrasi Guru Baru (Hari Ke-1)
+   */
+  async register(payload: RegisterTeacherInput): Promise<AuthResult> {
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data: AuthResult = await res.json();
+    if (data.token && typeof window !== 'undefined') {
+      localStorage.setItem('blg_auth_token', data.token);
+    }
+    return data;
+  },
+
+  /**
+   * Login Guru Lama (Hari Ke-2 dst)
+   */
+  async login(payload: LoginTeacherInput): Promise<AuthResult> {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data: AuthResult = await res.json();
+    if (data.token && typeof window !== 'undefined') {
+      localStorage.setItem('blg_auth_token', data.token);
+    }
+    return data;
+  },
+
+  /**
+   * Logout Sesi
+   */
+  logout() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('blg_auth_token');
+    }
+  }
+};

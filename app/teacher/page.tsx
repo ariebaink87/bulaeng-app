@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTeacherSetup } from '@/features/teacher/hooks/useTeacherSetup';
 import { WelcomeScreen } from '@/features/teacher/components/setup/WelcomeScreen';
 import { SchoolClassSetupForm } from '@/features/teacher/components/setup/SchoolClassSetupForm';
@@ -11,15 +11,39 @@ import { ClassroomExecutionCard } from '@/features/teacher/components/ClassroomE
 import { AiDraftGovernance } from '@/features/teacher/components/AiDraftGovernance';
 import { AiVideoModules } from '@/features/teacher/components/AiVideoModules';
 import { useTeacherSession } from '@/features/teacher/hooks/useTeacherSession';
+import { TeacherLoginModal } from '@/features/teacher/components/TeacherLoginModal';
+import { authBackendService } from '@/services/backendClient';
 
 export default function TeacherPage() {
   const [isSetupDone, setIsSetupDone] = useState<boolean>(false);
   const [showWelcome, setShowWelcome] = useState<boolean>(true);
+  
+  // Auth State
+  const [authChecking, setAuthChecking] = useState<boolean>(true);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
   const setup = useTeacherSetup(() => setIsSetupDone(true));
   const session = useTeacherSession();
 
-  if (!session.isMounted) {
+  // Pengecekan Sesi Guru saat Pertama Kali Dimuat
+  const verifyAuth = async () => {
+    setAuthChecking(true);
+    const status = await authBackendService.checkSessionStatus();
+
+    if (status.isRegistered && !status.isAuthenticated) {
+      // Jika guru pernah mendaftar tetapi belum login / token habis
+      setShowLoginModal(true);
+    } else {
+      setShowLoginModal(false);
+    }
+    setAuthChecking(false);
+  };
+
+  useEffect(() => {
+    verifyAuth();
+  }, []);
+
+  if (!session.isMounted || authChecking) {
     return (
       <div className="min-h-screen bg-[#111B38] flex items-center justify-center p-6 text-[#D4AF37] font-poppins font-semibold">
         Loading BULAENG OS...
@@ -93,6 +117,16 @@ export default function TeacherPage() {
             )}
           </div>
         </div>
+
+        {/* Modal Login untuk Guru Terdaftar */}
+        <TeacherLoginModal
+          isOpen={showLoginModal}
+          onSuccess={() => {
+            setShowLoginModal(false);
+            verifyAuth();
+          }}
+          onSwitchToRegister={() => setShowLoginModal(false)}
+        />
       </div>
     );
   }
@@ -139,6 +173,16 @@ export default function TeacherPage() {
         {/* Section 3: Modul Video Pembelajaran AI */}
         <AiVideoModules />
       </div>
+
+      {/* Modal Login jika sesi berakhir saat di dashboard */}
+      <TeacherLoginModal
+        isOpen={showLoginModal}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          verifyAuth();
+        }}
+        onSwitchToRegister={() => setShowLoginModal(false)}
+      />
     </div>
   );
 }
