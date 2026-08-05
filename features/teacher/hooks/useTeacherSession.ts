@@ -4,7 +4,7 @@ import { AiDraftReport, SessionState } from '@/contracts/report.contract';
 
 export function useTeacherSession() {
   const [isMounted, setIsMounted] = useState(false);
-  const [sessionState, setSessionState] = useState<SessionState>('STANDBY');
+  const [sessionState, setSessionState] = useState<SessionState>('INACTIVE' as SessionState);
   const [currentScene, setCurrentScene] = useState<string>('Opening / Pembukaan Kelas');
   const [loading, setLoading] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -18,7 +18,7 @@ export function useTeacherSession() {
   }, []);
 
   useEffect(() => {
-    if (!isMounted || !socket.on) return;
+    if (!isMounted || !socket?.on) return;
     if (!socket.connected) socket.connect();
 
     const onConnect = () => setIsConnected(true);
@@ -27,12 +27,12 @@ export function useTeacherSession() {
       if (data.current_moment) setCurrentScene(data.current_moment);
       if (data.system_status) {
         if (data.system_status === 'RUNNING') setSessionState('ACTIVE');
-        if (data.system_status === 'ENDED') setSessionState('FINISHED');
+        if (data.system_status === 'ENDED' || data.system_status === 'IDLE') setSessionState('INACTIVE' as SessionState);
       }
     };
     const onAiDraftReady = (draft: AiDraftReport) => {
       setDraftData(draft);
-      setSessionState('FINISHED');
+      setSessionState('INACTIVE' as SessionState);
     };
 
     socket.on('connect', onConnect);
@@ -78,8 +78,8 @@ export function useTeacherSession() {
         action: 'SHUTDOWN',
         sessionId: sessionId
       });
-    } catch {
-      // Fallback mode saat offline
+    } catch (error) {
+      console.warn('Backend offline/error, falling back to INACTIVE local state', error);
     } finally {
       setDraftData({
         presensi: '15 / 15 Murid Hadir',
@@ -90,7 +90,8 @@ export function useTeacherSession() {
         narasiAi: 'Hari ini anak-anak diajak menjelajah materi Petualangan Daun. Kegiatan berlangsung interaktif dan kondusif.',
         status: 'DRAFT',
       });
-      setSessionState('FINISHED');
+      // Set status kembali ke INACTIVE agar Header & Tombol menjadi mati/dapat di-start ulang
+      setSessionState('INACTIVE' as SessionState);
       setLoading(false);
     }
   };
@@ -118,6 +119,7 @@ export function useTeacherSession() {
     setDraftData,
     handleStartEpisode,
     handleFinishEpisode,
+    handleEndEpisode: handleFinishEpisode, // Alias untuk kompatibilitas ClassroomExecutionCard
     handleApproveDraft,
   };
 }

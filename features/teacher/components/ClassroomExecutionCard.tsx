@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 interface ClassroomExecutionCardProps {
   sessionState?: string;
   loading?: boolean;
-  onStartEpisode?: () => void;
+  onStartEpisode: () => void;
   onEndEpisode?: () => void;
 }
 
@@ -15,25 +15,17 @@ export const ClassroomExecutionCard: React.FC<ClassroomExecutionCardProps> = ({
   onStartEpisode,
   onEndEpisode,
 }) => {
-  // Menggunakan state lokal yang disinkronkan dengan sessionState, default: false (Inaktif/Mulai)
-  const [isClassActive, setIsClassActive] = useState<boolean>(false);
-
-  // Efek untuk menyinkronkan dengan sessionState jika ada dari backend
-  useEffect(() => {
-    if (sessionState !== undefined) {
-      setIsClassActive(sessionState === 'ACTIVE');
-    }
-  }, [sessionState]);
+  const isActive = sessionState === 'ACTIVE';
 
   const handleToggleClass = () => {
-    if (isClassActive) {
-      // Jika kelas sedang aktif -> Akhiri Kelas (Ubah ke Merah -> Gold)
-      if (onEndEpisode) onEndEpisode();
-      setIsClassActive(false);
+    if (isActive) {
+      if (onEndEpisode) {
+        onEndEpisode();
+      } else {
+        onStartEpisode();
+      }
     } else {
-      // Jika kelas belum mulai -> Mulai Kelas (Ubah ke Gold -> Merah)
-      if (onStartEpisode) onStartEpisode();
-      setIsClassActive(true);
+      onStartEpisode();
     }
   };
 
@@ -43,14 +35,13 @@ export const ClassroomExecutionCard: React.FC<ClassroomExecutionCardProps> = ({
         1. Eksekusi Kelas (Classroom Mode)
       </h2>
 
-      {/* Tombol Eksekusi sesuai BLG-DS-001 (Radius 14px) */}
       <button
         onClick={handleToggleClass}
         disabled={loading}
         className={`w-full py-4 font-poppins font-extrabold text-base rounded-[14px] transition-all duration-300 shadow-md active:scale-[0.99] disabled:opacity-50 cursor-pointer ${
-          isClassActive
-            ? 'bg-[#E74C3C] hover:bg-[#c0392b] text-white shadow-[#E74C3C]/20' // Danger Red (Akhiri Kelas)
-            : 'bg-[#D4AF37] hover:bg-[#c3a030] text-[#111B38] shadow-[#D4AF37]/20' // Primary Gold (Mulai Kelas)
+          isActive
+            ? 'bg-[#E74C3C] hover:bg-[#c0392b] text-white shadow-[#E74C3C]/20' // Danger Red (BLG-DS-001)
+            : 'bg-[#D4AF37] hover:bg-[#c3a030] text-[#111B38] shadow-[#D4AF37]/20' // Primary Gold (BLG-DS-001)
         }`}
       >
         {loading ? (
@@ -61,7 +52,7 @@ export const ClassroomExecutionCard: React.FC<ClassroomExecutionCardProps> = ({
             </svg>
             MEMPROSES...
           </span>
-        ) : isClassActive ? (
+        ) : isActive ? (
           'AKHIRI KELAS'
         ) : (
           'MULAI KELAS'
