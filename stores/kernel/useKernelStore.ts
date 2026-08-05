@@ -14,13 +14,13 @@ type KernelStore = KernelState & KernelActions;
 export const useKernelStore = create<KernelStore>((set) => ({
   isBooted: false,
   isOffline: false,
-  activeScreen: 'mission-control',
+  activeScreen: 'mission-control' as ScreenState,
   currentUser: null,
   activeWorkspaceId: null,
 
   boot: async () => {
     const initialState = await KernelBoot.bootSystem();
-    set({ ...initialState });
+    set((state) => ({ ...state, ...initialState }));
   },
 
   setScreen: (screen) => set({ activeScreen: screen }),

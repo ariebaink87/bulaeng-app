@@ -1,15 +1,22 @@
 export interface StudentInput {
+  id?: string;
   name: string;
-  notes?: string;
+  characterTrait?: string;
 }
 
 export interface SetupFormData {
-  teacherName?: string; // Tambahkan properti ini
+  // --- Kredensial Akun Guru ---
+  teacherName?: string;
+  email?: string;
+  password?: string;
+  nip?: string;
+
+  // --- Data Sekolah & Skenario Kelas ---
   schoolName: string;
   className: string;
-  semester?: string;
+  semester: string;
   students?: StudentInput[];
-  selectedUniverse?: string;
-  selectedStory?: string;
-  has3dAnimationAssets?: boolean;
+  selectedUniverse: string;
+  selectedStory: string;
+  has3dAnimationAssets: boolean;
 }
