@@ -7,6 +7,7 @@ import { SchoolClassSetupForm } from '@/features/teacher/components/setup/School
 import { StudentDataForm } from '@/features/teacher/components/setup/StudentDataForm';
 import { CurriculumModuleForm } from '@/features/teacher/components/setup/CurriculumModuleForm';
 import { TeacherHeader } from '@/features/teacher/components/TeacherHeader';
+import { ClassroomExecutionCard } from '@/features/teacher/components/ClassroomExecutionCard';
 import { AiDraftGovernance } from '@/features/teacher/components/AiDraftGovernance';
 import { AiVideoModules } from '@/features/teacher/components/AiVideoModules';
 import { useTeacherSession } from '@/features/teacher/hooks/useTeacherSession';
@@ -120,18 +121,12 @@ export default function TeacherPage() {
 
         {/* Section 1 & 2: Eksekusi Kelas & Review Draft Governance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-[#111B38]/90 backdrop-blur-md border border-[#D4AF37]/30 p-6 rounded-2xl space-y-4 shadow-xl">
-            <h2 className="font-extrabold text-white text-lg font-poppins">
-              1. Eksekusi Kelas (Classroom Mode)
-            </h2>
-            <button
-              onClick={session.handleStartEpisode}
-              disabled={session.loading}
-              className="w-full py-4 bg-[#D4AF37] hover:bg-[#c3a030] text-[#111B38] font-extrabold text-base rounded-xl transition-all shadow-lg active:scale-[0.99] disabled:opacity-50 cursor-pointer"
-            >
-              MULAI EPISODE
-            </button>
-          </div>
+          <ClassroomExecutionCard
+            sessionState={session.sessionState}
+            loading={session.loading}
+            onStartEpisode={session.handleStartEpisode}
+            onEndEpisode={(session as any).handleEndEpisode}
+          />
 
           <AiDraftGovernance
             draftData={session.draftData}
