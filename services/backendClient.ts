@@ -1,12 +1,12 @@
 import { io, Socket } from 'socket.io-client';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://bulaeng-platform-omega.vercel.app';
 
 // Inisialisasi socket HANYA jika berada di browser (Client-Side)
 export const socket: Socket = typeof window !== 'undefined'
   ? io(BACKEND_URL, {
       autoConnect: false,
-      transports: ['websocket'],
+      transports: ['polling', 'websocket'], // Properti transports ditambahkan di sini
     })
   : ({} as Socket);
 
