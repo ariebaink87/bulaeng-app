@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useClassStore } from '@/stores/teacher/useClassStore'; // ✅ Path import diperbaiki
+import { useClassStore } from '@/stores/teacher/useClassStore';
 
-export default function OnboardingModal() {
+interface OnboardingModalProps {
+  onClose?: () => void;
+}
+
+export default function OnboardingModal({ onClose }: OnboardingModalProps) {
   const { isConfigured, setClassConfig, loadDemoData } = useClassStore();
   const [className, setClassName] = useState('Kelas B2');
   const [activeTheme, setActiveTheme] = useState('Tanaman');
@@ -30,10 +34,32 @@ export default function OnboardingModal() {
     });
   };
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      // Fallback untuk menutup modal jika onClose tidak dipassing
+      useClassStore.setState({ isConfigured: true });
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 text-white shadow-2xl">
-        <div className="mb-6 text-center">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 text-white shadow-2xl relative">
+        
+        {/* TOMBOL SILANG (X) CLOSE DI POJOK KANAN ATAS */}
+        <button
+          type="button"
+          onClick={handleClose}
+          className="absolute top-4 right-4 text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-full transition cursor-pointer"
+          aria-label="Tutup"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="mb-6 text-center pr-6 pl-6">
           <span className="bg-amber-500/20 text-amber-400 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
             Pengaturan Awal Guru
           </span>
@@ -88,14 +114,14 @@ export default function OnboardingModal() {
           <div className="pt-2 flex flex-col gap-2">
             <button
               type="submit"
-              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg text-sm transition"
+              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg text-sm transition cursor-pointer"
             >
               Simpan & Mulai Menggunakan OS
             </button>
             <button
               type="button"
               onClick={loadDemoData}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-lg transition"
+              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-lg transition cursor-pointer"
             >
               Gunakan Data Contoh (Mode Demo)
             </button>
