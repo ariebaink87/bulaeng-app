@@ -5,12 +5,14 @@ import { authBackendService } from '@/services/backendClient';
 
 interface TeacherLoginModalProps {
   isOpen: boolean;
+  onClose?: () => void;
   onSuccess: () => void;
   onSwitchToRegister?: () => void;
 }
 
 export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
   isOpen,
+  onClose,
   onSuccess,
   onSwitchToRegister,
 }) => {
@@ -46,8 +48,23 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-800 text-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-        <div className="text-center mb-6">
+      <div className="relative bg-slate-900 border border-slate-800 text-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        
+        {/* TOMBOL SILANG (X) CLOSE */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-full transition cursor-pointer"
+            aria-label="Tutup Login"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+
+        <div className="text-center mb-6 pr-6 pl-6">
           <h2 className="text-2xl font-bold text-amber-400">Selamat Datang Kembali!</h2>
           <p className="text-sm text-slate-400 mt-1">
             Masukkan password untuk melanjutkan ke Kelas Bulaeng OS
@@ -92,7 +109,7 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 mt-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 font-semibold rounded-lg text-slate-950 transition-all disabled:opacity-50 text-sm"
+            className="w-full py-3 mt-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 font-semibold rounded-lg text-slate-950 transition-all disabled:opacity-50 text-sm cursor-pointer"
           >
             {loading ? 'Memverifikasi...' : 'Masuk ke Kelas Bulaeng'}
           </button>
@@ -103,7 +120,7 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
             <button
               type="button"
               onClick={onSwitchToRegister}
-              className="text-xs text-amber-400/80 hover:text-amber-400 underline"
+              className="text-xs text-amber-400/80 hover:text-amber-400 underline cursor-pointer"
             >
               Belum punya akun? Mendaftar sebagai guru baru
             </button>
