@@ -25,6 +25,8 @@ export default function TeacherPage() {
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
   const setup = useTeacherSetup(() => {
+    localStorage.setItem('bulaeng_registered', 'true');
+    localStorage.setItem('bulaeng_teacher_authenticated', 'true');
     setIsSetupDone(true);
     setIsRegistered(true);
     setIsAuthenticated(true);
@@ -34,27 +36,35 @@ export default function TeacherPage() {
   // Pengecekan Sesi Guru saat Pertama Kali Dimuat
   const verifyAuth = async () => {
     setAuthChecking(true);
+    
+    // Cek dulu dari Storage Lokal
+    const localRegistered = localStorage.getItem('bulaeng_registered') === 'true' || !!localStorage.getItem('teacher_setup_data');
+    const localAuth = localStorage.getItem('bulaeng_teacher_authenticated') === 'true';
+
     try {
       const status = await authBackendService.checkSessionStatus();
-      setIsRegistered(!!status.isRegistered);
-      setIsAuthenticated(!!status.isAuthenticated);
+      const registered = !!status.isRegistered || localRegistered;
+      const authenticated = !!status.isAuthenticated || localAuth;
 
-      if (status.isRegistered) {
+      setIsRegistered(registered);
+      setIsAuthenticated(authenticated);
+
+      if (registered) {
         setIsSetupDone(true);
-        if (!status.isAuthenticated) {
+        if (!authenticated) {
           setShowLoginModal(true);
         }
       } else {
         setIsSetupDone(false);
       }
     } catch (err) {
-      console.error("Error verifying auth:", err);
-      // Fallback: Jika backend error / offline, tetap izinkan akses UI lokal
-      const localAuth = localStorage.getItem('bulaeng_teacher_authenticated');
-      if (localAuth === 'true') {
-        setIsAuthenticated(true);
-        setIsRegistered(true);
+      console.warn("Backend auth offline, menggunakan status sesi lokal:", err);
+      // Fallback jika API backend offline
+      setIsRegistered(localRegistered);
+      setIsAuthenticated(localAuth);
+      if (localRegistered) {
         setIsSetupDone(true);
+        if (!localAuth) setShowLoginModal(true);
       }
     } finally {
       setAuthChecking(false);
@@ -64,6 +74,16 @@ export default function TeacherPage() {
   useEffect(() => {
     verifyAuth();
   }, []);
+
+  // Handler Sukses Login: Langsung Kunci State ke Dashboard
+  const handleLoginSuccess = () => {
+    localStorage.setItem('bulaeng_registered', 'true');
+    localStorage.setItem('bulaeng_teacher_authenticated', 'true');
+    setIsRegistered(true);
+    setIsAuthenticated(true);
+    setIsSetupDone(true);
+    setShowLoginModal(false);
+  };
 
   if (!session.isMounted || authChecking) {
     return (
@@ -78,13 +98,6 @@ export default function TeacherPage() {
     return <WelcomeScreen onComplete={() => setShowWelcome(false)} />;
   }
 
-  // Fungsi untuk menutup modal login dan kembali ke form pendaftaran/setup
-  const handleCloseLoginModal = () => {
-    setShowLoginModal(false);
-    setIsRegistered(false);
-    setIsSetupDone(false);
-  };
-
   // 2. GURU SUDAH TERDAFTAR TAPI BELUM LOGIN -> TAMPILKAN FORM LOGIN
   if (isRegistered && !isAuthenticated) {
     return (
@@ -97,13 +110,11 @@ export default function TeacherPage() {
       >
         <TeacherLoginModal
           isOpen={true}
-          onClose={handleCloseLoginModal}
-          onSuccess={() => {
-            setShowLoginModal(false);
-            setIsAuthenticated(true);
-            localStorage.setItem('bulaeng_teacher_authenticated', 'true');
-            verifyAuth();
+          onClose={() => {
+            setIsRegistered(false);
+            setIsSetupDone(false);
           }}
+          onSuccess={handleLoginSuccess}
           onSwitchToRegister={() => {
             setIsRegistered(false);
             setIsSetupDone(false);
@@ -233,12 +244,7 @@ export default function TeacherPage() {
       <TeacherLoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onSuccess={() => {
-          setShowLoginModal(false);
-          setIsAuthenticated(true);
-          localStorage.setItem('bulaeng_teacher_authenticated', 'true');
-          verifyAuth();
-        }}
+        onSuccess={handleLoginSuccess}
         onSwitchToRegister={() => {
           setIsRegistered(false);
           setIsSetupDone(false);
