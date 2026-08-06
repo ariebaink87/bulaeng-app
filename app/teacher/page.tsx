@@ -20,23 +20,38 @@ export default function TeacherPage() {
   
   // Auth State
   const [authChecking, setAuthChecking] = useState<boolean>(true);
+  const [isRegistered, setIsRegistered] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
-  const setup = useTeacherSetup(() => setIsSetupDone(true));
+  const setup = useTeacherSetup(() => {
+    setIsSetupDone(true);
+    setIsRegistered(true);
+    setIsAuthenticated(true);
+  });
   const session = useTeacherSession();
 
   // Pengecekan Sesi Guru saat Pertama Kali Dimuat
   const verifyAuth = async () => {
     setAuthChecking(true);
-    const status = await authBackendService.checkSessionStatus();
+    try {
+      const status = await authBackendService.checkSessionStatus();
+      setIsRegistered(!!status.isRegistered);
+      setIsAuthenticated(!!status.isAuthenticated);
 
-    if (status.isRegistered && !status.isAuthenticated) {
-      // Jika guru pernah mendaftar tetapi belum login / token habis
-      setShowLoginModal(true);
-    } else {
-      setShowLoginModal(false);
+      if (status.isRegistered) {
+        setIsSetupDone(true); // Tandai setup sudah selesai karena guru sudah terdaftar
+        if (!status.isAuthenticated) {
+          setShowLoginModal(true);
+        }
+      } else {
+        setIsSetupDone(false); // Guru baru, harus setup/register
+      }
+    } catch (err) {
+      console.error("Error verifying auth:", err);
+    } finally {
+      setAuthChecking(false);
     }
-    setAuthChecking(false);
   };
 
   useEffect(() => {
@@ -51,13 +66,38 @@ export default function TeacherPage() {
     );
   }
 
-  // 1. WELCOME SCREEN CINEMATIC
+  // 1. WELCOME SCREEN CINEMATIC (Hanya untuk alur awal)
   if (showWelcome) {
     return <WelcomeScreen onComplete={() => setShowWelcome(false)} />;
   }
 
-  // 2. TAHAP 1: SETUP FORMULIR DENGAN BACKGROUND NAVY & GOLD DOT GRID
-  if (!isSetupDone) {
+  // 2. GURU SUDAH TERDAFTAR TAPI BELUM LOGIN -> TAMPILKAN FORM LOGIN
+  if (isRegistered && !isAuthenticated) {
+    return (
+      <div 
+        className="min-h-screen bg-[#111B38] relative flex flex-col items-center justify-center p-6"
+        style={{
+          backgroundImage: `radial-gradient(rgba(212, 175, 55, 0.25) 1.5px, transparent 1.5px)`,
+          backgroundSize: `28px 28px`
+        }}
+      >
+        <TeacherLoginModal
+          isOpen={true}
+          onSuccess={() => {
+            setShowLoginModal(false);
+            verifyAuth();
+          }}
+          onSwitchToRegister={() => {
+            setIsRegistered(false);
+            setIsSetupDone(false);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 3. TAHAP 1: GURU BARU (SETUP FORMULIR REGISTRASI)
+  if (!isSetupDone && !isRegistered) {
     return (
       <div 
         className="min-h-screen bg-[#111B38] relative flex items-center justify-center p-6 sm:p-10 overflow-hidden animate-fade-in"
@@ -74,16 +114,27 @@ export default function TeacherPage() {
         <div className="w-full max-w-2xl bg-[#111B38]/95 backdrop-blur-md border border-[#D4AF37]/40 rounded-[28px] shadow-[0_25px_60px_rgba(0,0,0,0.6)] overflow-hidden relative z-10">
           
           {/* Header Navy */}
-          <div className="bg-[#111B38] p-8 text-white border-b border-[#D4AF37]/30">
-            <span className="text-xs uppercase text-[#D4AF37] font-bold tracking-widest font-poppins">
-              Tahap 1: Ingestion
-            </span>
-            <h2 className="text-3xl font-extrabold font-poppins mt-1 text-white tracking-tight">
-              Setup Awal Guru & Kelas Baru
-            </h2>
-            <p className="text-sm text-[#A0A6B1] font-inter mt-1.5">
-              Input data sekali saja agar AI dapat mengenali konteks pembelajaran.
-            </p>
+          <div className="bg-[#111B38] p-8 text-white border-b border-[#D4AF37]/30 flex justify-between items-center">
+            <div>
+              <span className="text-xs uppercase text-[#D4AF37] font-bold tracking-widest font-poppins">
+                Tahap 1: Ingestion
+              </span>
+              <h2 className="text-3xl font-extrabold font-poppins mt-1 text-white tracking-tight">
+                Setup Awal Guru & Kelas Baru
+              </h2>
+              <p className="text-sm text-[#A0A6B1] font-inter mt-1.5">
+                Input data sekali saja agar AI dapat mengenali konteks pembelajaran.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setIsRegistered(true);
+                setShowLoginModal(true);
+              }}
+              className="text-xs text-[#D4AF37] underline hover:text-white transition cursor-pointer"
+            >
+              Sudah punya akun? Login
+            </button>
           </div>
 
           {/* Form Content */}
@@ -117,21 +168,11 @@ export default function TeacherPage() {
             )}
           </div>
         </div>
-
-        {/* Modal Login untuk Guru Terdaftar */}
-        <TeacherLoginModal
-          isOpen={showLoginModal}
-          onSuccess={() => {
-            setShowLoginModal(false);
-            verifyAuth();
-          }}
-          onSwitchToRegister={() => setShowLoginModal(false)}
-        />
       </div>
     );
   }
 
-  // 3. MAIN DASHBOARD GURU DENGAN GOLD DOT GRID BACKGROUND
+  // 4. MAIN DASHBOARD GURU (SITUASI SUDAH LOGIN & TERDAFTAR)
   return (
     <div
       className="min-h-screen bg-[#111B38] relative p-6 sm:p-8 text-white overflow-x-hidden"
@@ -145,7 +186,6 @@ export default function TeacherPage() {
       <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-[#D4AF37]/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
-        {/* Header Dashboard dengan Tombol Beranda */}
         <TeacherHeader
           isConnected={session.isConnected}
           sessionState={session.sessionState}
@@ -153,7 +193,6 @@ export default function TeacherPage() {
           className={setup.formData.className || 'Kelas B2'}
         />
 
-        {/* Section 1 & 2: Eksekusi Kelas & Review Draft Governance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ClassroomExecutionCard
             sessionState={session.sessionState}
@@ -170,18 +209,20 @@ export default function TeacherPage() {
           />
         </div>
 
-        {/* Section 3: Modul Video Pembelajaran AI */}
         <AiVideoModules />
       </div>
 
-      {/* Modal Login jika sesi berakhir saat di dashboard */}
       <TeacherLoginModal
         isOpen={showLoginModal}
         onSuccess={() => {
           setShowLoginModal(false);
           verifyAuth();
         }}
-        onSwitchToRegister={() => setShowLoginModal(false)}
+        onSwitchToRegister={() => {
+          setIsRegistered(false);
+          setIsSetupDone(false);
+          setShowLoginModal(false);
+        }}
       />
     </div>
   );
