@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CURRICULUM_PRESETS } from '@/content/curriculumPreset';
-import { VIDEO_STORE_DATA } from '@/content/videoStoreData';
-import { generateDailyPackage, DailyLessonPackage } from '@/services/aiEngine';
-
+import { CURRICULUM_PRESET } from '../../content';
+import { VIDEO_STORE_DATA } from '../../content';
+import { generateDailyPackage, DailyLessonPackage } from '../../services/aiEngine';
 interface ClassSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,8 +21,8 @@ export default function ClassSettingsModal({ isOpen, onClose, onSaveAndActivateA
 
   if (!isOpen) return null;
 
-  const activeCurriculum = CURRICULUM_PRESETS.filter(
-    (item) => item.group === selectedGroup && item.semester === selectedSemester
+  const activeCurriculum = CURRICULUM_PRESET.filter(
+    (item: any) => item.group === selectedGroup && item.semester === selectedSemester
   );
 
   const handleAddStudent = () => {
@@ -33,11 +32,18 @@ export default function ClassSettingsModal({ isOpen, onClose, onSaveAndActivateA
   };
 
   const handleActivateAI = () => {
-    const dailyPackage = generateDailyPackage(selectedGroup, selectedSemester, students);
-    if (onSaveAndActivateAI) {
-      onSaveAndActivateAI(dailyPackage);
+    try {
+      const dailyPackage = generateDailyPackage(selectedGroup, selectedSemester, students);
+      if (onSaveAndActivateAI) {
+        onSaveAndActivateAI(dailyPackage);
+      }
+    } catch (err) {
+      console.error("AI Engine generation error:", err);
+    } finally {
+      onClose();
+      // Navigasi paksa ke halaman Classroom Bulaeng
+      window.location.href = '/teacher/classroom';
     }
-    onClose();
   };
 
   return (
@@ -118,7 +124,7 @@ export default function ClassSettingsModal({ isOpen, onClose, onSaveAndActivateA
               </div>
 
               <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                {activeCurriculum.map((item) => (
+                {activeCurriculum.map((item: any) => (
                   <div key={item.id} className="flex items-center justify-between bg-slate-950/80 border border-slate-800/80 rounded-xl p-3 text-xs">
                     <div>
                       <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md mr-2">
@@ -170,7 +176,7 @@ export default function ClassSettingsModal({ isOpen, onClose, onSaveAndActivateA
 
           {activeTab === 'videos' && (
             <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-              {VIDEO_STORE_DATA.map((vid) => (
+              {VIDEO_STORE_DATA.map((vid: any) => (
                 <div key={vid.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex gap-3 items-center">
                   <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
                     {vid.thumbnail}
