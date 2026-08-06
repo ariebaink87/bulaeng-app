@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CURRICULUM_PRESET } from '../../content';
-import { VIDEO_STORE_DATA } from '../../content';
+import { CURRICULUM_PRESET, VIDEO_STORE_DATA } from '../../content';
 import { generateDailyPackage, DailyLessonPackage } from '../../services/aiEngine';
+
 interface ClassSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -33,15 +33,21 @@ export default function ClassSettingsModal({ isOpen, onClose, onSaveAndActivateA
 
   const handleActivateAI = () => {
     try {
+      // 1. Dapatkan racikan materi dari AI Engine
       const dailyPackage = generateDailyPackage(selectedGroup, selectedSemester, students);
+      
       if (onSaveAndActivateAI) {
         onSaveAndActivateAI(dailyPackage);
       }
+
+      // 2. Simpan status onboarding di browser agar tidak kembali ke wizard
+      localStorage.setItem('bulaeng_setup_completed', 'true');
+
     } catch (err) {
       console.error("AI Engine generation error:", err);
     } finally {
       onClose();
-      // Navigasi paksa ke halaman Classroom Bulaeng
+      // 3. Navigasi langsung ke Bulaeng Classroom Dashboard
       window.location.href = '/teacher/classroom';
     }
   };
